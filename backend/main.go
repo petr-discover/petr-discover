@@ -1,12 +1,29 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"net/http"
 
-	"github.com/petr-discover/config"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/petr-discover/cmd/database"
+	"github.com/petr-discover/cmd/routes"
 )
 
+var err error
+
 func main() {
-	s := config.Neo4jDBConfig()
-	fmt.Println(s)
+	database.DBMain, err = database.NewSQLDB("pgx")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		if err = database.DBMain.Close(); err != nil {
+			panic(err)
+		}
+		log.Println("Disconnected from SQL Database")
+	}()
+
+	r := routes.NewRouter(":8080")
+	http.ListenAndServe(":8080", r)
 }
