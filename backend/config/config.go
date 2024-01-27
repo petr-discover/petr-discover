@@ -2,6 +2,9 @@ package config
 
 import (
 	"fmt"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 var Neo4jUser string
@@ -14,6 +17,22 @@ type AppConfig struct {
 	DBPass string
 	DBName string
 	DBType string
+}
+
+var GoogleURLAPI string
+
+var GoogleOauthConfig oauth2.Config
+
+func GoogleAuthConfig() {
+	loadEnv()
+	GoogleOauthConfig = oauth2.Config{
+		RedirectURL:  "http://localhost:8080/api/v1/auth/google/callback",
+		ClientID:     getEnv("CLIENT_ID", "some_id"),
+		ClientSecret: getEnv("CLIENT_SECRET", "some_secret"),
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Endpoint:     google.Endpoint,
+	}
+	GoogleURLAPI = getEnv("GOOGLE_URL_API", "https://www.googleapis.com/oauth2/v2/userinfo?access_token=")
 }
 
 func Neo4jDBConfig() string {

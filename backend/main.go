@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -27,6 +28,18 @@ func main() {
 			panic(err)
 		}
 		log.Println("Disconnected from SQL Database")
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	database.Neo4jSession, err = database.NewNeo4jDB(ctx)
+
+	defer func() {
+		if err = database.Neo4jSession.Close(ctx); err != nil {
+			panic(err)
+		}
+		log.Println("Disconnected from Neo4j Database")
 	}()
 
 	r := routes.NewRouter(":8080")

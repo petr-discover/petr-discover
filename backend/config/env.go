@@ -9,7 +9,7 @@ import (
 )
 
 func loadEnv() {
-	err := godotenv.Load("../dev.env")
+	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Println("unable to load .env file")
 	}

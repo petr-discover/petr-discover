@@ -32,6 +32,8 @@ func authRouter(r *chi.Mux) {
 		r.Post("/register", handlers.CreateUser)
 		r.Post("/login", handlers.Login)
 		r.Post("/logout", handlers.Logout)
+		r.Get("/google/login", handlers.GoogleAuth)
+		r.Get("/google/callback", handlers.GoogleCallback)
 	})
 }
 
