@@ -1,4 +1,4 @@
-FROM golang:1.14.6-alpine3.12 as builder
+FROM golang:1.21.6-alpine3.19 as builder
 
 WORKDIR /go/src/app
 
