@@ -31,7 +31,7 @@ var GoogleOauthConfig oauth2.Config
 func GoogleAuthConfig() {
 	loadEnv()
 	GoogleOauthConfig = oauth2.Config{
-		RedirectURL:  "http://localhost:8080/api/v1/auth/google/callback",
+		RedirectURL:  getEnv("REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
 		ClientID:     getEnv("CLIENT_ID", "some_id"),
 		ClientSecret: getEnv("CLIENT_SECRET", "some_secret"),
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
