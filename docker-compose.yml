@@ -1,0 +1,71 @@
+version: '3.3'
+
+services:
+  # goserver:
+  #   build:
+  #     context: ./backend
+  #   container_name: goserver
+  #   command: []
+  #   stdin_open: true
+  #   ports:
+  #     - 8080:8080
+  #   volumes:
+  #     - ./backend:/go/src/app
+  #   depends_on:
+  #     - neo4j
+  
+  # fastserver:
+  #   build:
+  #     context: ./ai
+  #   container_name: fastserver
+  #   command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+  #   stdin_open: true
+  #   ports:
+  #     - 8000:8000
+  #   volumes:
+  #     - ./ai:/app
+  #   depends_on:
+  #     - neo4j
+
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4jdb
+    ports:
+      - "7687:7687"
+      - "7474:7474"
+    environment:
+      - NEO4J_AUTH=neo4j/123456789a
+      - NEO4J_dbms_security_auth__minimum__password__length=10
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    volumes:
+      - neo4j_data:/var/lib/neo4j/data
+  
+  postgre:
+    image: postgres:latest
+    container_name: postgre
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=irvine
+      - POSTGRES_PASSWORD=irvine
+      - POSTGRES_DB=hackathon
+    volumes:
+      - postgre_data:/var/lib/postgresql/data
+  
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=teami@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=secret
+      - PGADMIN_LISTEN_PORT=81
+    ports:
+     - 8010:81
+    volumes:
+     - pgadmin_data_dev:/var/lib/pgadmin
+    depends_on:
+     - db
+
+volumes:
+  neo4j_data:
+  postgre_data:
