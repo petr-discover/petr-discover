@@ -51,9 +51,9 @@ func friendRouter(r *chi.Mux) {
 	r.Route("/api/v1/friends", func(r chi.Router) {
 		r.Use(handlers.FriendCtx)
 		r.Get("/", handlers.GetFriends)
+		r.Delete("/", handlers.DeleteFriend)
 		r.Get("/pending", handlers.GetPendingFriend)
-		r.Post("/{id}", handlers.CreateFriend)
-		r.Delete("/{id}", handlers.DeleteFriend)
+		r.Get("/extended", handlers.GetFriendsExtended)
 	})
 }
 
@@ -61,6 +61,5 @@ func graphRouter(r *chi.Mux) {
 	r.Route("/api/v1/graph", func(r chi.Router) {
 		r.Use(handlers.GraphCtx)
 		r.Get("/", handlers.GetGraph)
-		r.Get("/extended", handlers.GetFriendsExtendedGraph)
 	})
 }

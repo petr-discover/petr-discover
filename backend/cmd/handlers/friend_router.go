@@ -10,14 +10,18 @@ func GraphCtx(next http.Handler) http.Handler {
 	})
 }
 
-func GetGraph(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("GetGraph"))
+func GetFriends(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("GetFriends"))
+}
+
+func DeleteFriend(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("DeleteFriend"))
 }
 
 func GetPendingFriend(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("GetPendingFriend"))
 }
 
-func GetFriendsExtendedGraph(w http.ResponseWriter, r *http.Request) {
+func GetFriendsExtended(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("GetFriendsExtendedGraph"))
 }
