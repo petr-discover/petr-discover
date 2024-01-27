@@ -19,6 +19,11 @@ type AppConfig struct {
 	DBType string
 }
 
+type JWTConfig struct {
+	SecretKey  string
+	RefreshKey string
+}
+
 var GoogleURLAPI string
 
 var GoogleOauthConfig oauth2.Config
@@ -62,4 +67,13 @@ func PostgresDBConfig() string {
 	}
 	dbURL := fmt.Sprintf("%s://%s:%s@%s:%d/%s", cfg.DBType, cfg.DBUser, cfg.DBPass, cfg.DBHost, cfg.DBPort, cfg.DBName)
 	return dbURL
+}
+
+func JWTSecretKey() *JWTConfig {
+	loadEnv()
+	cfg := &JWTConfig{
+		SecretKey:  getEnv("JWT_SECRET_KEY", "secret"),
+		RefreshKey: getEnv("JWT_REFReSH_KEY", "refresh"),
+	}
+	return cfg
 }

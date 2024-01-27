@@ -19,9 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	database.DBMain.LionMigrate(&models.Members{})
-	database.DBMain.LionMigrate(&models.Session{})
-	database.DBMain.LionMigrate(&models.GoogleAuth{})
+	database.DBMain.LionMigrate(&models.Member{})
 
 	defer func() {
 		if err = database.DBMain.Close(); err != nil {
@@ -29,14 +27,15 @@ func main() {
 		}
 		log.Println("Disconnected from SQL Database")
 	}()
+	var cancel context.CancelFunc
 
-	ctx, cancel := context.WithCancel(context.Background())
+	database.Neo4jCtx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	database.Neo4jSession, err = database.NewNeo4jDB(ctx)
+	database.Neo4jDriver, err = database.NewNeo4jDB(database.Neo4jCtx)
 
 	defer func() {
-		if err = database.Neo4jSession.Close(ctx); err != nil {
+		if err = database.Neo4jDriver.Close(database.Neo4jCtx); err != nil {
 			panic(err)
 		}
 		log.Println("Disconnected from Neo4j Database")

@@ -40,8 +40,10 @@ func authRouter(r *chi.Mux) {
 func userRouter(r *chi.Mux) {
 	r.Route("/api/v1/user", func(r chi.Router) {
 		r.Use(handlers.UserCtx)
-		r.Get("/{id}", handlers.GetUser)
-		r.Put("/{id}", handlers.UpdateUser)
+		r.Post("/", handlers.CreateUserCard)
+		r.Get("/", handlers.GetUser)
+		r.Put("/", handlers.UpdateUser)
+		r.Post("/friend", handlers.AddFriend)
 	})
 }
 

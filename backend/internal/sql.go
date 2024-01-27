@@ -29,7 +29,7 @@ func ConnectSQLDB(dbDriver string) (*sql.DB, error) {
 	return db, nil
 }
 
-func ConnectNeo4jDB(ctx context.Context) (neo4j.SessionWithContext, error) {
+func ConnectNeo4jDB(ctx context.Context) (neo4j.DriverWithContext, error) {
 	uri := config.Neo4jDBConfig()
 	username := config.Neo4jUser
 	password := config.Neo4jPass
@@ -38,10 +38,5 @@ func ConnectNeo4jDB(ctx context.Context) (neo4j.SessionWithContext, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	defer driver.Close(ctx)
-
-	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
-
-	return session, nil
+	return driver, nil
 }
