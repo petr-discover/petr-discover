@@ -51,6 +51,7 @@ func friendRouter(r *chi.Mux) {
 	r.Route("/api/v1/friends", func(r chi.Router) {
 		r.Use(handlers.FriendCtx)
 		r.Get("/", handlers.GetFriends)
+		r.Get("/pending", handlers.GetPendingFriend)
 		r.Post("/{id}", handlers.CreateFriend)
 		r.Delete("/{id}", handlers.DeleteFriend)
 	})

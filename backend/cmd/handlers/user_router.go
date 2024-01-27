@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j/dbtype"
 	"github.com/petr-discover/cmd/database"
 )
 
@@ -115,20 +116,113 @@ func AddFriend(w http.ResponseWriter, r *http.Request) {
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	username, exists := CheckLogin(w, r)
-	if exists {
-		w.Write([]byte(username))
-	} else {
+	if !exists {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Not logged in"))
+		return
 	}
+
+	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(database.Neo4jCtx)
+
+	result, err := session.Run(database.Neo4jCtx,
+		"MATCH (u:User {username: $username})-[:HAS_CARD]->(c:Card) RETURN u, c",
+		map[string]interface{}{
+			"username": username,
+		})
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"Failed to retrieve user data"}`))
+		return
+	}
+
+	record, err := result.Single(database.Neo4jCtx)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"User not found"}`))
+		return
+	}
+
+	userNode, ok := record.Values[0].(dbtype.Node)
+	if !ok {
+		log.Println("Failed to convert to Node")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"Failed to convert to Node"}`))
+		return
+	}
+
+	cardNode, ok := record.Values[1].(dbtype.Node)
+	if !ok {
+		log.Println("Failed to convert to Node")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"Failed to convert to Node"}`))
+		return
+	}
+
+	userProps := userNode.Props
+	cardProps := cardNode.Props
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := map[string]interface{}{
+		"user": userProps,
+		"card": cardProps,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	username, exists := CheckLogin(w, r)
-	if exists {
-		w.Write([]byte(username))
-	} else {
+	if !exists {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Not logged in"))
+		return
 	}
+
+	// Parse JSON request body
+	var updateRequest map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&updateRequest)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"Invalid request body"}`))
+		return
+	}
+
+	cardPropsToUpdate, ok := updateRequest["card"].(map[string]interface{})
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"Invalid card properties in request"}`))
+		return
+	}
+
+	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(database.Neo4jCtx)
+
+	_, err = session.ExecuteWrite(database.Neo4jCtx, func(transaction neo4j.ManagedTransaction) (any, error) {
+		_, err := transaction.Run(database.Neo4jCtx,
+			"MATCH (u:User {username: $username})-[:HAS_CARD]->(c:Card) SET c += $cardPropsToUpdate RETURN u, c",
+			map[string]any{
+				"username":          username,
+				"cardPropsToUpdate": cardPropsToUpdate,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"Failed to update card properties"}`))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"Card properties updated successfully"}`))
 }

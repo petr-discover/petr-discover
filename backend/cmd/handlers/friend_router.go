@@ -14,6 +14,10 @@ func GetGraph(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("GetGraph"))
 }
 
+func GetPendingFriend(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("GetPendingFriend"))
+}
+
 func GetFriendsExtendedGraph(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("GetFriendsExtendedGraph"))
 }
