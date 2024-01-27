@@ -27,7 +27,7 @@ func NewRouter(port string) *chi.Mux {
 }
 
 func authRouter(r *chi.Mux) {
-	r.Route("api/v1/auth", func(r chi.Router) {
+	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Use(handlers.AuthCtx)
 		r.Post("/register", handlers.CreateUser)
 		r.Post("/login", handlers.Login)
@@ -36,7 +36,7 @@ func authRouter(r *chi.Mux) {
 }
 
 func userRouter(r *chi.Mux) {
-	r.Route("api/v1/user", func(r chi.Router) {
+	r.Route("/api/v1/user", func(r chi.Router) {
 		r.Use(handlers.UserCtx)
 		r.Get("/{id}", handlers.GetUser)
 		r.Put("/{id}", handlers.UpdateUser)
@@ -44,7 +44,7 @@ func userRouter(r *chi.Mux) {
 }
 
 func friendRouter(r *chi.Mux) {
-	r.Route("api/v1/friends", func(r chi.Router) {
+	r.Route("/api/v1/friends", func(r chi.Router) {
 		r.Use(handlers.FriendCtx)
 		r.Get("/", handlers.GetFriends)
 		r.Post("/{id}", handlers.CreateFriend)
@@ -53,7 +53,7 @@ func friendRouter(r *chi.Mux) {
 }
 
 func graphRouter(r *chi.Mux) {
-	r.Route("api/v1/graph", func(r chi.Router) {
+	r.Route("/api/v1/graph", func(r chi.Router) {
 		r.Use(handlers.GraphCtx)
 		r.Get("/", handlers.GetGraph)
 		r.Get("/extended", handlers.GetFriendsExtendedGraph)

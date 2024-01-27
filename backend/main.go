@@ -6,6 +6,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/petr-discover/cmd/database"
+	"github.com/petr-discover/cmd/models"
 	"github.com/petr-discover/cmd/routes"
 )
 
@@ -16,6 +17,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	database.DBMain.LionMigrate(&models.Members{})
+	database.DBMain.LionMigrate(&models.Session{})
+	database.DBMain.LionMigrate(&models.GoogleAuth{})
 
 	defer func() {
 		if err = database.DBMain.Close(); err != nil {

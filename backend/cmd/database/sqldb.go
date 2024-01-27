@@ -16,18 +16,16 @@ type DB struct {
 
 func (d *DB) LionMigrate(dbModel interface{}) {
 	t := reflect.TypeOf(dbModel)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	if t.Kind() != reflect.Struct {
-		log.Println("Model is not a struct. Migration failed")
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		log.Println("Invalid model type. Migration failed")
 		return
 	}
-	tableName := t.Name()
+
+	tableName := t.Elem().Name()
 	var argsSQL []string
 
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
+	for i := 0; i < t.Elem().NumField(); i++ {
+		field := t.Elem().Field(i)
 		tags := field.Tag
 		columnName := tags.Get("db")
 		dataType := tags.Get("dataType")
@@ -36,11 +34,13 @@ func (d *DB) LionMigrate(dbModel interface{}) {
 		argsSQL = append(argsSQL, clause)
 	}
 	sqlArg := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s);", tableName, strings.Join(argsSQL, ", "))
+
 	_, err := d.Exec(sqlArg)
 	if err != nil {
-		log.Println("Model is not a struct. Migration failed")
+		log.Printf("Table creation failed: %v", err)
+		return
 	}
-	log.Printf("Succesfully Migrated Table Name: %s", tableName)
+	log.Printf("Successfully Migrated Table: %s", tableName)
 }
 
 func NewSQLDB(dbDriver string) (*DB, error) {
@@ -48,5 +48,6 @@ func NewSQLDB(dbDriver string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Connected to SQL Database")
 	return &DB{db}, nil
 }
