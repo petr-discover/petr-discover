@@ -7,10 +7,13 @@ services:
     container_name: goserver
     command: []
     stdin_open: true
+    restart: always
     ports:
       - 8080:8080
     volumes:
       - ./backend:/go/src/app
+    env_file:
+      - .env
     depends_on:
       - neo4j
       - postgre
@@ -66,7 +69,7 @@ services:
      - pgadmin_data_dev:/var/lib/pgadmin
     depends_on:
      - postgre
-     
+
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.46.0
     container_name: cadvisor
