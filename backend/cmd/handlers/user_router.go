@@ -43,6 +43,22 @@ func CreateUserCard(w http.ResponseWriter, r *http.Request) {
 	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(database.Neo4jCtx)
 
+	result, err := session.Run(database.Neo4jCtx,
+		"MATCH (u:User {username: $username}) RETURN u",
+		map[string]interface{}{
+			"username": username,
+		})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	if result.Next(database.Neo4jCtx) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"User Card Already Exists"}`))
+		return
+	}
+
 	_, err = session.ExecuteWrite(database.Neo4jCtx, func(transaction neo4j.ManagedTransaction) (any, error) {
 		_, err := transaction.Run(database.Neo4jCtx,
 			"CREATE (u:User {username: $username})-[:HAS_CARD]->(c:Card {first_name: $first_name, last_name: $last_name, user_profile_image: $user_profile_image}) RETURN u, c",
@@ -88,11 +104,10 @@ func AddFriend(w http.ResponseWriter, r *http.Request) {
 	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(database.Neo4jCtx)
 
-	_, err = session.ExecuteWrite(database.Neo4jCtx, func(transaction neo4j.ManagedTransaction) (any, error) {
-		_, err := transaction.Run(database.Neo4jCtx,
-			"MATCH (u:User {username: $username}), (f:User {username: $friend_username}) "+
-				"MERGE (u)-[:SENT_FRIEND_REQUEST]->(request:FriendRequest)-[:TO_USER]->(f) RETURN request",
-			map[string]any{
+	_, err = session.ExecuteWrite(database.Neo4jCtx, func(transaction neo4j.ManagedTransaction) (interface{}, error) {
+		// Check if there is a pending friend request
+		result, err := transaction.Run(database.Neo4jCtx, "MATCH (u:User {username: $friend_username})-[friendRequest:SENT_FRIEND_REQUEST]-(n:FriendRequest{status: 'pending'})-[dd:TO_USER]->(f:User {username: $username}) RETURN n.status",
+			map[string]interface{}{
 				"username":        username,
 				"friend_username": friendRequest.UserName,
 			})
@@ -100,18 +115,56 @@ func AddFriend(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 
+		if result.Next(database.Neo4jCtx) {
+			_, err := transaction.Run(database.Neo4jCtx,
+				"MATCH (u:User)-[s:SENT_FRIEND_REQUEST]-(fr:FriendRequest)-[dd:TO_USER]->(uu:User) WHERE u.username = $friend_username AND uu.username = $username DELETE fr, dd, s",
+				map[string]interface{}{
+					"username":        username,
+					"friend_username": friendRequest.UserName,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = transaction.Run(database.Neo4jCtx,
+				"MATCH (u:User {username: $username}), (f:User {username: $friend_username}) "+
+					"MERGE (u)-[:FRIENDS_WITH]->(f) "+
+					"MERGE (f)-[:FRIENDS_WITH]->(u)",
+				map[string]interface{}{
+					"username":        username,
+					"friend_username": friendRequest.UserName,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+		} else {
+			_, err := transaction.Run(database.Neo4jCtx,
+				"MATCH (u:User {username: $username}), (f:User {username: $friend_username}) "+
+					"MERGE (u)-[:SENT_FRIEND_REQUEST]->(request:FriendRequest {status: 'pending', sender: $sender})-[:TO_USER]->(f) RETURN request",
+				map[string]interface{}{
+					"username":        username,
+					"friend_username": friendRequest.UserName,
+					"sender":          username, // Add the sender property here
+				})
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return nil, nil
 	})
+
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"message":"Failed to create FRIENDS_WITH relationship"}`))
+		w.Write([]byte(`{"message":"Failed to add friend"}`))
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"FRIENDS_WITH relationship created successfully"}`))
+	w.Write([]byte(`{"message":"Friend request processed successfully"}`))
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
