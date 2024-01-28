@@ -239,11 +239,10 @@ func storeUserInDatabase(userInfo UserInfo) error {
 		}
 
 		fmt.Println("User created successfully")
+		return nil
 	} else {
-		fmt.Println("User already exists")
+		return fmt.Errorf("user already exists")
 	}
-
-	return nil
 }
 
 func authenticateUserByUsername(username, password string) bool {
