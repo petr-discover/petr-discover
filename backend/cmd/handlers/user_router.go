@@ -168,11 +168,24 @@ func AddFriend(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	username, exists := CheckLogin(w, r)
+	var username string
+	n, exists := CheckLogin(w, r)
 	if !exists {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte("Not logged in"))
 		return
+	}
+	var requestBody map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	usernameFromBody, exists := requestBody["username"].(string)
+	if !exists || usernameFromBody == "" {
+		username = n
+	} else {
+		username = usernameFromBody
 	}
 
 	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
