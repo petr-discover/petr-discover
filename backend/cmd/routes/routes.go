@@ -21,9 +21,9 @@ func NewRouter(port string) *chi.Mux {
 		AllowedOrigins: []string{"https://*", "http://*"},
 		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		// AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		// ExposedHeaders:   []string{"Link"},
-		// AllowCredentials: false,
+		AllowCredentials: true,
 		// MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
