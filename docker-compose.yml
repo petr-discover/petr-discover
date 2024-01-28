@@ -56,58 +56,58 @@ services:
     volumes:
       - postgre_data:/var/lib/postgresql/data
   
-  # pgadmin:
-  #   image: dpage/pgadmin4:latest
-  #   restart: always
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=irvine@gmail.com
-  #     - PGADMIN_DEFAULT_PASSWORD=secret
-  #     - PGADMIN_LISTEN_PORT=81
-  #   ports:
-  #    - 8010:81
-  #   volumes:
-  #    - pgadmin_data_dev:/var/lib/pgadmin
-  #   depends_on:
-  #    - postgre
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=irvine@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=secret
+      - PGADMIN_LISTEN_PORT=81
+    ports:
+     - 8010:81
+    volumes:
+     - pgadmin_data_dev:/var/lib/pgadmin
+    depends_on:
+     - postgre
 
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:v0.46.0
-  #   container_name: cadvisor
-  #   ports:
-  #     - 8081:8080
-  #   volumes: 
-  #     - "/:/rootfs"
-  #     - "/var/run:/var/run"
-  #     - "/sys:/sys"
-  #     - "/var/lib/docker/:/var/lib/docker"
-  #     - "/dev/disk/:/dev/disk"
-  #   privileged: true
-  #   restart: always
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.46.0
+    container_name: cadvisor
+    ports:
+      - 8081:8080
+    volumes: 
+      - "/:/rootfs"
+      - "/var/run:/var/run"
+      - "/sys:/sys"
+      - "/var/lib/docker/:/var/lib/docker"
+      - "/dev/disk/:/dev/disk"
+    privileged: true
+    restart: always
     
-  # prometheus:
-  #   image: prom/prometheus
-  #   container_name: prometheus
-  #   ports:
-  #     - 9090:9090
-  #   volumes:
-  #     - ./prometheus:/etc/prometheus/
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #   restart: always
-  #   depends_on:
-  #     - cadvisor
-  # grafana:
-  #   image: grafana/grafana
-  #   container_name: grafana
-  #   ports:
-  #     - 3000:3000
-  #   volumes:
-  #     - grafana-data:/etc/grafana/provisioning
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=root
-  #   restart: always
-  #   depends_on:
-  #     - prometheus
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus:/etc/prometheus/
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: always
+    depends_on:
+      - cadvisor
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=root
+    restart: always
+    depends_on:
+      - prometheus
 
 volumes:
   neo4j_data:
