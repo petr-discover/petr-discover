@@ -41,6 +41,12 @@ func main() {
 		log.Println("Disconnected from Neo4j Database")
 	}()
 
+	// ctx := context.Background()
+	// client, err := storage.NewClient(ctx, option.WithCredentialsFile("auth.json"))
+	// if err != nil {
+	// 	log.Fatalf("Failed to create client: %v", err)
+	// }
+	// defer client.Close()
 	r := routes.NewRouter(":8080")
 	http.ListenAndServe(":8080", r)
 }

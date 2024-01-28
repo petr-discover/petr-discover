@@ -6,12 +6,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /usr/bin/main
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 
 FROM alpine
 
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /usr/bin/main /usr/bin/main
+WORKDIR /app
+COPY --from=builder /go/src/app/ /app/
 
 EXPOSE 8080
-ENTRYPOINT ["/usr/bin/main"]
+
+ENTRYPOINT ["/app/main"]

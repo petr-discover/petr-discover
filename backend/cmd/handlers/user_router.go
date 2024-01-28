@@ -1,13 +1,24 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 
+	"cloud.google.com/go/storage"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j/dbtype"
 	"github.com/petr-discover/cmd/database"
+	"google.golang.org/api/option"
+)
+
+const (
+	bucketName = "petr-bucket"
 )
 
 type FriendRequest struct {
@@ -17,7 +28,7 @@ type FriendRequest struct {
 type UserCardRequest struct {
 	FirstName        string `json:"first_name"`
 	LastName         string `json:"last_name"`
-	UserProfileImage string `json:"user_profile_image"`
+	UserProfileImage string `json:"file"`
 }
 
 func UserCtx(next http.Handler) http.Handler {
@@ -34,10 +45,35 @@ func CreateUserCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var userCard UserCardRequest
-	err := json.NewDecoder(r.Body).Decode(&userCard)
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
+	}
+
+	// Get the file from the request
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Unable to get file from form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	firstName := r.Form.Get("first_name")
+	lastName := r.Form.Get("last_name")
+
+	url, err := uploadHandler(file, handler)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message":"Failed to upload image"}`))
+		return
+	}
+
+	userCard = UserCardRequest{
+		FirstName:        firstName,
+		LastName:         lastName,
+		UserProfileImage: url,
 	}
 
 	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
@@ -291,4 +327,48 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message":"Card properties updated successfully"}`))
+}
+
+func uploadHandler(file multipart.File, handler *multipart.FileHeader) (string, error) {
+	// Read the file content
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	// Initialize Google Cloud Storage client
+	ctx := context.Background()
+
+	currentDir, _ := filepath.Abs(filepath.Dir("."))
+	log.Printf("Current Working Directory: %s\n", currentDir)
+	keyPath := filepath.Join(currentDir, "auth.json")
+	log.Printf("Key Path: %s\n", keyPath)
+	client, err := storage.NewClient(ctx, option.WithCredentialsFile(keyPath))
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+		return "", err
+	}
+
+	// Generate a unique object name or use the original file name
+	objectName := fmt.Sprintf("%d_%s", handler.Size, handler.Filename)
+
+	// Upload file to Google Cloud Storage
+	if err := uploadFile(ctx, client, bucketName, fileBytes, objectName); err != nil {
+		log.Fatalf("Failed to upload file: %v", err)
+		return "", err
+	}
+
+	// Generate URL for the uploaded file
+	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, objectName)
+
+	return url, nil
+}
+
+func uploadFile(ctx context.Context, client *storage.Client, bucketName string, fileBytes []byte, objectName string) error {
+	bucket := client.Bucket(bucketName)
+	wc := bucket.Object(objectName).NewWriter(ctx)
+	defer wc.Close()
+
+	_, err := wc.Write(fileBytes)
+	return err
 }

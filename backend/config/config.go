@@ -28,6 +28,8 @@ var GoogleURLAPI string
 
 var GoogleOauthConfig oauth2.Config
 
+var GoogleStorageKey = getEnv("GOOGLE_STORAGE_KEY", "secret")
+
 func GoogleAuthConfig() {
 	loadEnv()
 	GoogleOauthConfig = oauth2.Config{
