@@ -27,25 +27,48 @@ func GetGraph(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Not logged in"))
 		return
 	}
+
 	session := database.Neo4jDriver.NewSession(database.Neo4jCtx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(database.Neo4jCtx)
-	result, err := session.Run(database.Neo4jCtx, "MATCH (u:User) RETURN u", map[string]interface{}{})
+
+	result, err := session.Run(database.Neo4jCtx, "MATCH (n) OPTIONAL MATCH (n)-[r]-(m) RETURN n, r, m", map[string]interface{}{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	var users []UserNode
+
+	var nodes []map[string]interface{}
 	for result.Next(database.Neo4jCtx) {
 		record := result.Record()
-		userNode, b := record.Get("u")
+		node, b := record.Get("n")
 
 		if b {
-			user := UserNode{
-				UserName: userNode.(neo4j.Node).Props["username"].(string),
-			}
-			users = append(users, user)
+			nodeProps := node.(neo4j.Node).Props
+			nodes = append(nodes, map[string]interface{}{
+				"type":       "node",
+				"properties": nodeProps,
+			})
+		}
+
+		rel, b := record.Get("r")
+		if b {
+			relProps := rel.(neo4j.Relationship).Props
+			nodes = append(nodes, map[string]interface{}{
+				"type":       "relationship",
+				"properties": relProps,
+			})
+		}
+
+		node, b = record.Get("m")
+		if b {
+			nodeProps := node.(neo4j.Node).Props
+			nodes = append(nodes, map[string]interface{}{
+				"type":       "node",
+				"properties": nodeProps,
+			})
 		}
 	}
-	jsonResponse := map[string][]UserNode{"users": users}
+
+	jsonResponse := map[string]interface{}{"graph": nodes}
 	responseBytes, err := json.Marshal(jsonResponse)
 	if err != nil {
 		log.Println(err)
@@ -53,6 +76,7 @@ func GetGraph(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message":"Failed to marshal JSON response"}`))
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(responseBytes)
 	if err != nil {
